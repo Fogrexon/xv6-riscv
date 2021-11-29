@@ -27,8 +27,10 @@ enum ut_state {
 struct uthread { 
   enum ut_state state;
   struct context context;
+  void (*fun)();
 };
 
+void func_wrapper();
 int make_uthread(void (*fun)());
 void start_uthreads();
 void uthread_exit();

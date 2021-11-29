@@ -174,4 +174,4 @@ qemu-gdb: $K/kernel .gdbinit fs.img
 	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
 
 run-docker:
-	docker run -it --rm -v $(pwd):/home/xv6/xv6-riscv wtakuo/xv6-env
+	docker run -it --rm -v $PWD:/home/xv6/xv6-riscv wtakuo/xv6-env

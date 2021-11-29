@@ -21,6 +21,15 @@ uint64 stack[MAX_UTHREADS][STACK_DEPTH];
 // current thread id
 int tid;
 
+// function wrapper
+void (*running_fun)();
+void
+func_wrapper()
+{
+  running_fun();
+  uthread_exit();
+}
+
 int
 make_uthread(void (*fun)())
 {
@@ -33,11 +42,9 @@ make_uthread(void (*fun)())
   }
   if (use_tid < 0) return -1;
   
-  uthread[use_tid].context.ra = (uint64)fun;
-  uint64 *sp = &(stack[use_tid] + STACK_DEPTH);
-  *--sp = (uint64)uthread_exit;
-  // *(stack[use_tid] + STACK_DEPTH) = (uint64)uthread_exit;
-  uthread[use_tid].context.sp = (uint64)sp;
+  uthread[use_tid].context.ra = (uint64)func_wrapper;
+  uthread[use_tid].fun = fun;
+  uthread[use_tid].context.sp = (uint64)(stack[use_tid] + STACK_DEPTH);
   uthread[use_tid].state = UT_READY;
 
   return use_tid;  // DUMMY (SHOULD BE REMOVED)
@@ -51,11 +58,6 @@ start_uthreads()
   swtch(&main_context, &uthread[tid].context);
 }
 
-void
-func_wrapper()
-{
-  
-}
 
 void
 uthread_exit()
@@ -68,6 +70,7 @@ uthread_exit()
     if (uthread[i%8].state == UT_READY) {
       tid = i%8;
       uthread[tid].state = UT_RUNNING;
+      running_fun = uthread[tid].fun;
       swtch(&uthread[old_tid].context, &uthread[tid].context);
       return;
     }
@@ -87,6 +90,7 @@ yield()
     if (uthread[i%8].state == UT_READY) {
       tid = i%8;
       uthread[tid].state = UT_RUNNING;
+      running_fun = uthread[tid].fun;
       swtch(&uthread[old_tid].context, &uthread[tid].context);
       return;
     }
