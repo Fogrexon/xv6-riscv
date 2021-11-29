@@ -69,8 +69,8 @@ void
 uthread_swtch()
 {
   int old_tid = tid;
-  for (int i=tid+1;i<tid+MAX_UTHREADS+1;i++) {
-    tid = i%8;
+  for (int i=tid+1;i<tid+MAX_UTHREADS+2;i++) {
+    tid = i % MAX_UTHREADS;
     if (uthread[tid].state == UT_READY) {
       uthread[tid].state = UT_RUNNING;
       running_func = uthread[tid].func;
@@ -116,7 +116,8 @@ uthread_notify(int tid, void *a)
   }
 }
 
-void uthread_notify_all(void *a)
+void
+uthread_notify_all(void *a)
 {
   for (int i=0;i<MAX_UTHREADS;i++) {
     if (uthread[i].state == UT_SLEEP && uthread[i].chan == a) {
