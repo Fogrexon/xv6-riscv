@@ -64,17 +64,14 @@ start_uthreads()
   swtch(&main_context, &uthread[tid].context);
 }
 
-
+// select next thread
 void
-uthread_exit()
+uthread_swtch()
 {
-  printf("exit\n");
   int old_tid = tid;
-  uthread[old_tid].state = UT_ZOMBIE;
-
-  for (int i=tid+1;i<tid+MAX_UTHREADS;i++) {
-    if (uthread[i%8].state == UT_READY) {
-      tid = i%8;
+  for (int i=tid+1;i<tid+MAX_UTHREADS+1;i++) {
+    tid = i%8;
+    if (uthread[tid].state == UT_READY) {
       uthread[tid].state = UT_RUNNING;
       running_func = uthread[tid].func;
       swtch(&uthread[old_tid].context, &uthread[tid].context);
@@ -82,23 +79,48 @@ uthread_exit()
     }
   }
   tid = -1;
-  uthread[old_tid].state = UT_ZOMBIE;
   swtch(&uthread[old_tid].context, &main_context);
+}
+
+void
+uthread_exit()
+{
+  uthread[tid].state = UT_ZOMBIE;
+
+  uthread_swtch();
 }
 
 void
 yield()
 {
-  int old_tid = tid;
-  uthread[old_tid].state = UT_READY;
+  uthread[tid].state = UT_READY;
 
-  for (int i=tid+1;i<tid+MAX_UTHREADS+1;i++) {
-    if (uthread[i%8].state == UT_READY) {
-      tid = i%8;
-      uthread[tid].state = UT_RUNNING;
-      running_func = uthread[tid].func;
-      swtch(&uthread[old_tid].context, &uthread[tid].context);
-      return;
+  uthread_swtch();
+}
+
+// sleeping
+void
+uthread_wait(void *a)
+{
+  uthread[tid].state = UT_SLEEP;
+  uthread[tid].chan = a;
+
+  uthread_swtch();
+}
+
+void
+uthread_notify(int tid, void *a)
+{
+  if (uthread[tid].state == UT_SLEEP && uthread[tid].chan == a) {
+    uthread[tid].state = UT_READY;
+  }
+}
+
+void uthread_notify_all(void *a)
+{
+  for (int i=0;i<MAX_UTHREADS;i++) {
+    if (uthread[i].state == UT_SLEEP && uthread[i].chan == a) {
+      uthread[i].state = UT_READY;
     }
   }
 }

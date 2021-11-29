@@ -22,18 +22,26 @@ enum ut_state {
   UT_UNUSED,
   UT_READY,
   UT_RUNNING,
-  UT_ZOMBIE
+  UT_ZOMBIE,
+  UT_SLEEP
 };
 
 struct uthread { 
   enum ut_state state;
   struct context context;
   void (*func)();
+  void *chan;
 };
 
-void func_wrapper();
 int make_uthread(void (*func)());
 void start_uthreads();
 void uthread_exit();
 void yield();
+
+// sleep
+void uthread_wait(void *a);
+void uthread_notify(int tid, void *a);
+void uthread_notify_all(void *a);
+
+
 int mytid();
