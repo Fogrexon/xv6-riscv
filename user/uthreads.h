@@ -25,13 +25,12 @@ enum ut_state {
 };
 
 struct uthread { 
-  /*
-   * FILL YOUR CODE HERE
-   */
+  enum ut_state state;
+  struct context context;
 };
 
 int make_uthread(void (*fun)());
 void start_uthreads();
+void uthread_exit();
 void yield();
 int mytid();
-
