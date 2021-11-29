@@ -22,16 +22,16 @@ uint64 stack[MAX_UTHREADS][STACK_DEPTH];
 int tid;
 
 // function wrapper
-void (*running_fun)();
+void (*running_func)();
 void
 func_wrapper()
 {
-  running_fun();
+  running_func();
   uthread_exit();
 }
 
 int
-make_uthread(void (*fun)())
+make_uthread(void (*func)())
 {
   int use_tid = -1;
   for (int i=0;i<MAX_UTHREADS;i++) {
@@ -41,11 +41,9 @@ make_uthread(void (*fun)())
     }
   }
   if (use_tid < 0) return -1;
-  
-  uthread[use_tid].context.ra = (uint64)func_wrapper;
-  uthread[use_tid].fun = fun;
-  uthread[use_tid].context.sp = (uint64)(stack[use_tid] + STACK_DEPTH);
-  uthread[use_tid].state = UT_READY;
+
+  uthread[use_tid].func = func;
+  uthread[use_tid].state = UT_ZOMBIE;
 
   return use_tid;  // DUMMY (SHOULD BE REMOVED)
 }
@@ -55,6 +53,14 @@ start_uthreads()
 {
   tid = 0;
 
+  for (int i=0;i<MAX_UTHREADS;i++) {
+    if (uthread[i].state == UT_ZOMBIE) {
+      uthread[i].state = UT_READY;
+      uthread[i].context.sp = (uint64)(stack[i] + STACK_DEPTH);
+      uthread[i].context.ra = (uint64)func_wrapper;
+    }
+  }
+  running_func = uthread[tid].func;
   swtch(&main_context, &uthread[tid].context);
 }
 
@@ -64,19 +70,19 @@ uthread_exit()
 {
   printf("exit\n");
   int old_tid = tid;
-  uthread[old_tid].state = UT_UNUSED;
+  uthread[old_tid].state = UT_ZOMBIE;
 
   for (int i=tid+1;i<tid+MAX_UTHREADS;i++) {
     if (uthread[i%8].state == UT_READY) {
       tid = i%8;
       uthread[tid].state = UT_RUNNING;
-      running_fun = uthread[tid].fun;
+      running_func = uthread[tid].func;
       swtch(&uthread[old_tid].context, &uthread[tid].context);
       return;
     }
   }
   tid = -1;
-  uthread[old_tid].state = UT_UNUSED;
+  uthread[old_tid].state = UT_ZOMBIE;
   swtch(&uthread[old_tid].context, &main_context);
 }
 
@@ -90,7 +96,7 @@ yield()
     if (uthread[i%8].state == UT_READY) {
       tid = i%8;
       uthread[tid].state = UT_RUNNING;
-      running_fun = uthread[tid].fun;
+      running_func = uthread[tid].func;
       swtch(&uthread[old_tid].context, &uthread[tid].context);
       return;
     }

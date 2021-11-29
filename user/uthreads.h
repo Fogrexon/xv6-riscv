@@ -21,17 +21,18 @@ struct context {
 enum ut_state {
   UT_UNUSED,
   UT_READY,
-  UT_RUNNING
+  UT_RUNNING,
+  UT_ZOMBIE
 };
 
 struct uthread { 
   enum ut_state state;
   struct context context;
-  void (*fun)();
+  void (*func)();
 };
 
 void func_wrapper();
-int make_uthread(void (*fun)());
+int make_uthread(void (*func)());
 void start_uthreads();
 void uthread_exit();
 void yield();
