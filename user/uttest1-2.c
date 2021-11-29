@@ -4,41 +4,29 @@
 #include "user/uthreads.h"
 
 void foo() {
-    int c = 0;
-    for (;;) {
-        printf("foo (tid=%d): %d\n", mytid(), c);
-        c += 1;
-        yield();
+  int c = 0;
+  for(;;) {
+    c += 1;
+    for(int i=0;i<3;i++) {
+      printf("foo: %d\n", c * i);
+      yield();
     }
+    yield();
+  }
 }
 
 void bar() {
-    int c = 0;
-    for (;;) {
-        printf("bar (tid=%d): %d\n", mytid(), c);
-        yield();
-        c += 2;
-    }
-}
-
-void baz_sub(int *cp) {
-  printf("baz (tid=%d): %d\n", mytid(), *cp);
-  yield();
-  *cp += 3;
-}
-
-void baz() {
-    int c = 0;
-    for (;;) {
-        baz_sub(&c);
-        baz_sub(&c);
-    }
+  int c = 0;
+  for(;;) {
+    c += 1;
+    printf("bar: %d\n", c);
+    yield();
+  }
 }
 
 int main() {
-    make_uthread(foo);
-    make_uthread(bar);
-    make_uthread(baz);
-    start_uthreads();
-    exit(0);
+  make_uthread(foo);
+  make_uthread(bar);
+  start_uthreads();
+  exit(0);
 }
